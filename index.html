@@ -1,0 +1,164 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Polarizer 5000</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; background-color: black; color:white; }
+      form { background: #000; padding: 3px; position: fixed; top: 0; width: 100%; }
+      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      form button { width: 9%; background: silver; border: none; padding: 10px; }
+	    .messages{
+        margin-top:50px;
+        font-family: 'Monaco';
+        white-space: pre-line; 
+        background-color: black;
+        color: green;
+      }
+      .right {}
+    </style>
+  </head>
+  <body>
+    <div id="plot_area" class="right"></div>
+
+  <div id="set">
+      <table>
+        <tr><td>Logging</td><td><input id="logfile" value></input></td><td> </td><td><button id='start_log'> start </button></td><td><button id='stop_log'> stop </button></td></tr>
+        <tr><td>Set Potential</td><td><input id="s_vol" value =  1></input></td><td>V</td><td><button id='set_vol'> set </button></td></tr>
+          <tr><td>Set Current</td>  <td><input id="s_cur" value = .1></input></td><td>A</td><td><button id='set_cur'> set </button></td></tr>
+          <tr><td><button id='set_enable'> enable </button></td><td><button id='set_disable'> disable </button></td></tr>
+          <!-- <tr><td>Set Period</td><td><input id="period" value = 1></input></td><td>V</td><td><button id='set_period'> set </button></td></td></tr> -->
+      </table>
+
+  </div>
+
+  
+  <div id="data"></div>
+
+  <div id="status">foo</div>
+  <script src="https://cdn.plot.ly/plotly-2.8.3.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+  <script>
+        var socket = io();
+        socket.on('status',(msg)=>{ $("#status").html(table(msg));});
+        socket.on('data', (data) =>$("#data").html(table(data)));
+
+
+        ts = []
+        vs = []
+        cs = []
+        max_length = 500
+
+        lu = 0;
+
+
+        function table(obj)
+        {
+            out = "<table>\n"
+            for (i in obj)
+            {
+              out+=`<tr><td>${i}:</td><td>${obj[i]}</td></tr>\n`
+            }
+            out +="</table>\n"
+
+            if (obj['type'] == 'data')
+            {
+              ts.push(parseFloat(obj['time']))
+              vs.push(parseFloat(obj['voltage']))
+              cs.push(parseFloat(obj['current']))
+
+              if (ts.length > max_length){ts.shift(0);}
+              if (vs.length > max_length){vs.shift(0);}
+              if (cs.length > max_length){cs.shift(0);}
+
+              dats = [{'ts':ts,'vs':vs,'cs':cs}]
+              ff = new Date().getTime();
+              if (ff > (lu+2000))
+              {
+                plotter(dats);
+                //lu = ff;
+              }
+
+            }
+
+
+            return out
+        }
+
+
+        $("#set_enable").click( ()=>{$.post("/enable");})
+        $("#set_disable").click(()=>{$.post("/disable");})
+        $("#set_cur").click(()=>{$.post("/set_current",{'current':parseFloat($("#s_cur").val())});})
+        $("#set_vol").click(()=>{$.post("/set_voltage",{'voltage':parseFloat($("#s_vol").val())});})
+
+
+
+        $("#set_period").click(()=>
+        {
+            payload = {}
+            if (parseFloat($("#period").val()) > 1) period = parseFloat($("#period").val())
+            else period = 5
+            out = {'topic':'rd6018/cmnd/batch','payload':period}
+            $.post("/rd6018cmd",out);
+        })
+
+        $("#start_log").click(()=>{$.post("/logging",{'logfile':$("#logfile").val()})})
+        $("#stop_log" ).click(()=>{$.post("/logging",{'logfile':undefined})})
+
+
+
+        function set_opts(vv){
+          foo = {
+                    margin: { t: 100 },
+                   // title: vv['test'],
+                    font: {family: 'Helvetica',size: 15,color: '#7f7f7f'},
+                    yaxis: {'title':"Potential (V)",domain:[0.52,1],zerolinecolor:"#FFFFFF"},
+                    xaxis:{fixedrange: false ,ticks:'', showticklabels:false,zerolinecolor:"#FFFFFF"},
+                    yaxis2:{'title':"Current (mA)" ,domain:[0,0.48]},
+                    xaxis2:{'title':'Time', anchor:'y2', fixedrange: false,zerolinecolor:"#FFFFFF"}
+              }
+          return foo
+          }
+
+    
+          o = {'test':"foo",'mod':1,'plotly':true,autoscale:true}
+
+          first = true;
+          function plotter(dats)
+          {
+              
+              a = $("#plot_area")[0]
+              //a.innerHTML = "";
+
+              b = []
+              ccs = ['black','lightgray','lightgreen','lightblue']
+              c = 0
+              for (d in dats)
+              {
+                  b[b.length] =  {x: dats[d]['ts'], y: dats[d]['vs'] , line:{'color': ccs[c]}, name: `${d}_V`}
+                  b[b.length] =  {x: dats[d]['ts'], y: dats[d]['cs'] , line:{'color': ccs[c]}, name: `${d}_I`, xaxis:'x2',yaxis:'y2'}
+                  c+=1
+              }
+
+              lt = dats[d]['ts'][dats[d]['ts'].length-1]
+              //o['test'] = `Conditions as of ${lt}`
+              c = set_opts(o)
+              d = {displayModeBar: false}
+              if (first) {Plotly.react(a,b,c,d);first=false}
+              else {Plotly.redraw(a,b,c,d)}
+
+              
+              //try {Plotly.react(a,b,c,d);}
+              ///catch (e) {console.log(e);Plotly.plot(a,b,c,d);}
+              //console.log("ok")
+              window.onresize = function() {Plotly.Plots.resize($('#plot_area')[0]);};
+              return b
+          }
+
+
+          
+
+  </script>
+  </body>
+</html>
