@@ -46,9 +46,10 @@ function process_data(str)
   parts = str.split(",")
   out = {}
   out['type'] = 'data';
+  out['time'] = new Date().getTime();
   out['voltage'] = parseFloat(parts[0])
   out['current'] = parseFloat(parts[1])
-  out['time'] = new Date().getTime();
+  out['ref'] = parseFloat(parts[3])
 
   return out
 }
@@ -66,6 +67,8 @@ function process_status(regs)
 
     out = {}
     out['type'] = 'status'
+    out['logfile'] = logfile
+    out['time'] = new Date().getTime();
     out['internal_temp'] = isign * regs[5]
     out['probe_temp'] = esign * regs[35]
     out['m_vol'] = regs[10] / voltres //V
@@ -77,7 +80,6 @@ function process_status(regs)
     out['p_vol'] = regs[82] / voltres
     out['p_cur'] = regs[83] / ampres
     out['enabled'] = regs[18];
-    out['time'] = new Date().getTime();
     out['td'] = out['time'] - lt;
     lt = out['time'] 
     return out
@@ -99,7 +101,7 @@ function set_voltage(val){console.log(val);modbus.writeRegisters(8,[parseInt(val
 function set_current(val){console.log(val);modbus.writeRegisters(9,[parseInt(val*100)])}
 
 setInterval(()=> {queue[queue.length] = [read_status,undefined]},1000);
-setInterval(()=>process_queue(),200);
+setInterval(()=>process_queue(),500);
 
 
 

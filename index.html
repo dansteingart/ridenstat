@@ -23,6 +23,12 @@
 
   <div id="set">
       <table>
+        <tr><td>Limits</td>
+          <td><input id="vmin" value></input>
+          <td><input id="vmax" value></input>
+          <td><input id="imin" value></input>
+          <td><input id="imin" value></input>
+        </tr>
         <tr><td>Logging</td><td><input id="logfile" value></input></td><td> </td><td><button id='start_log'> start </button></td><td><button id='stop_log'> stop </button></td></tr>
         <tr><td>Set Potential</td><td><input id="s_vol" value =  1></input></td><td>V</td><td><button id='set_vol'> set </button></td></tr>
           <tr><td>Set Current</td>  <td><input id="s_cur" value = .1></input></td><td>A</td><td><button id='set_cur'> set </button></td></tr>
@@ -48,6 +54,7 @@
         ts = []
         vs = []
         cs = []
+        rs = []
         max_length = 500
 
         lu = 0;
@@ -67,12 +74,14 @@
               ts.push(parseFloat(obj['time']))
               vs.push(parseFloat(obj['voltage']))
               cs.push(parseFloat(obj['current']))
+              rs.push(parseFloat(obj['ref']))
 
               if (ts.length > max_length){ts.shift(0);}
               if (vs.length > max_length){vs.shift(0);}
               if (cs.length > max_length){cs.shift(0);}
+              if (rs.length > max_length){rs.shift(0);}
 
-              dats = [{'ts':ts,'vs':vs,'cs':cs}]
+              dats = [{'ts':ts,'vs':vs,'cs':cs,'rs':rs}]
               ff = new Date().getTime();
               if (ff > (lu+2000))
               {
@@ -137,6 +146,7 @@
               for (d in dats)
               {
                   b[b.length] =  {x: dats[d]['ts'], y: dats[d]['vs'] , line:{'color': ccs[c]}, name: `${d}_V`}
+                  b[b.length] =  {x: dats[d]['ts'], y: dats[d]['rs'] , line:{'color': ccs[c+1]}, name: `ref_V`}
                   b[b.length] =  {x: dats[d]['ts'], y: dats[d]['cs'] , line:{'color': ccs[c]}, name: `${d}_I`, xaxis:'x2',yaxis:'y2'}
                   c+=1
               }
