@@ -49,11 +49,11 @@ void loop(void)
   current_mA = ina219.getCurrent_mA();
   power_mW = ina219.getPower_mW();
   loadvoltage = busvoltage + (shuntvoltage / 1000);
-  
+  float ref = 3.3*analogRead(0)/4095;
 
   if (millis() > (ts+del))
   {
-      Serial.print(loadvoltage); Serial.print(","); Serial.print(current_mA); Serial.print(","); Serial.println(power_mW); 
+      Serial.print(loadvoltage); Serial.print(","); Serial.print(current_mA); Serial.print(","); Serial.print(power_mW); Serial.print(","); Serial.println(ref) ;
       ts = millis();
   }
 
