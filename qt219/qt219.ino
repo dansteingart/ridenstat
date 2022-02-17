@@ -1,11 +1,14 @@
 #include <Wire.h>
 #include <Adafruit_INA219.h>
+#include "ATSAMD21_ADC.h"
 
 Adafruit_INA219 ina219;
 long ts;
 
 void setup(void) 
 {
+  analogReadExtended(12);
+  analogGain(ADC_GAIN1_DIV2);
   Serial.begin(115200);
   while (!Serial) {
       // will pause Zero, Leonardo, etc until serial console opens
@@ -49,7 +52,9 @@ void loop(void)
   current_mA = ina219.getCurrent_mA();
   power_mW = ina219.getPower_mW();
   loadvoltage = busvoltage + (shuntvoltage / 1000);
-  float ref = 3.3*analogRead(0)/4095;
+  float ref = 2*3.3*analogDifferential(3,0)/4095;
+  //Serial.println(analogDifferential(3,0));
+
 
   if (millis() > (ts+del))
   {
