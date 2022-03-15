@@ -22,7 +22,17 @@ var serialPort = new SerialPort("/dev/ttyACM0",{baudRate: 115200});
 const parser = serialPort.pipe(new Readline({ delimiter: '\r\n' }))
 
 serialPort.on("open",() =>{console.log('open');});  
-parser.on('data', (data) => {out = process_data(data);io.emit('data',out);log(out);});
+
+emit_every = 10;
+emit_count = 0;
+parser.on('data', (data) => {
+	out = process_data(data);
+	emit_count+=1
+	if (emit_count > emit_every) {
+		io.emit('data',out);
+		emit_count = 0;
+	}
+	log(out);});
 modbus.connectRTUBuffered("/dev/ttyUSB0", { baudRate: 115200 }); 
 
 dird = "files"
